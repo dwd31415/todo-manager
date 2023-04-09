@@ -44,13 +44,21 @@ fn main() -> std::io::Result<()>{
         }
     }
 
+    let mut markdown_code = "".to_owned();
     for file_name in files{
         let content = std::fs::read_to_string(&file_name).expect("could not read file");
         for line in content.lines() {
-            if line.contains("@TODO") {
-                println!("{}", line);
+            if line.contains("@TODO:") {
+                let mut parts: Vec<&str> = line.split("@TODO:").collect();
+                parts.drain(..1);
+                for part in parts {
+                    markdown_code.push_str("- [ ]");
+                    markdown_code.push_str(part);
+                    markdown_code.push_str("\n");
+                }
             }
         }
     }
+    println!("{}", markdown_code);
     Ok(())
 }
