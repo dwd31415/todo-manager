@@ -46,7 +46,7 @@ fn main() -> std::io::Result<()>{
 
     let mut markdown_code = "".to_owned();
     for file_name in files{
-        let content = std::fs::read_to_string(&file_name).expect("could not read file");
+        let content = std::fs::read_to_string(&file_name).expect(format!("Could not read file {}.", file_name.display()).as_str());
         for line in content.lines() {
             if line.contains("@TODO:") {
                 let mut parts: Vec<&str> = line.split("@TODO:").collect();
@@ -60,5 +60,14 @@ fn main() -> std::io::Result<()>{
         }
     }
     println!("{}", markdown_code);
+    let content_output = std::fs::read_to_string(&args.output_file).expect(format!("Could not read file {}.",args.output_file.display()).as_str());
+    if content_output.contains("@TODO-List"){
+        let processed = content_output.replace("@TODO-List", &markdown_code);
+        let error_msg = format!("Could not write to file {}.", args.output_file.display());
+        fs::write(args.output_file, processed).expect(error_msg.as_str()); 
+    }
+    else{
+        println!("Error: The output file {} doesn't contain the macro @TODO-List. Please add this somewhere.", args.output_file.display());
+    }
     Ok(())
 }
