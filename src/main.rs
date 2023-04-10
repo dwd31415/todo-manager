@@ -1,9 +1,10 @@
 use clap::Parser;
+use pathdiff::diff_paths;
 use std::fs::metadata;
 use std::fs;
 use glob::glob;
 /**
-Application to automatically format todo list written in code.
+Application to automatically format a todo list written in code.
 */
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -16,13 +17,24 @@ struct Args {
     /// Name of the output file. 
     /// Note: This file should already exist and contain the macro "@TODO-List" somewhere.
     #[arg(short, long="output")]
-    output_file: std::path::PathBuf
+    output_file: std::path::PathBuf,
 }
 
 fn main() -> std::io::Result<()>{
     let args = Args::parse();
     let mut files = Vec::<std::path::PathBuf>::new();
     let mut paths = Vec::<std::path::PathBuf>::new();
+
+    // Compute the base path for the links to the TODO items.
+    let output_meta = metadata(&args.output_file)?;
+    if !(output_meta.is_file()){
+        println!("Error: The output file does not exist or is a directory.");
+        return Ok(());
+    }
+    let base_path = args.output_file.parent().expect(
+            format!("Error: The output file {} is an invalid path.", args.output_file.display()).as_str());
+
+    // Extract all the input pattern and convert them to paths
     for file_name in args.input_files {
         for entry in glob(file_name.as_str()).expect("Failed to read pattern ") {
             match entry {
@@ -31,6 +43,8 @@ fn main() -> std::io::Result<()>{
             }
         }
     }
+
+    // Generate a list of all files that should be scanned.
     for path in &paths{
         let meta = metadata(&path)?;
         if meta.is_file(){
@@ -44,9 +58,16 @@ fn main() -> std::io::Result<()>{
         }
     }
 
+    // Otherwise the ordering might differ from run to run 
+    files.sort();
+
+    // Generate Markdown code 
     let mut markdown_code = "".to_owned();
     for file_name in files{
-        let content = std::fs::read_to_string(&file_name).expect(format!("Could not read file {}.", file_name.display()).as_str());
+        let content = std::fs::read_to_string(&file_name).expect(format!("Could not read file {}.", &file_name.display()).as_str());
+        let relative_path = diff_paths(&file_name.canonicalize().unwrap(), &base_path.canonicalize().unwrap())
+            .expect(format!("Unexpected error.").as_str());
+        let mut line_counter = 1;
         for line in content.lines() {
             if line.contains("@TODO:") {
                 let mut parts: Vec<&str> = line.split("@TODO:").collect();
@@ -54,12 +75,15 @@ fn main() -> std::io::Result<()>{
                 for part in parts {
                     markdown_code.push_str("- [ ]");
                     markdown_code.push_str(part);
+                    markdown_code.push_str(format!(" [See in file]({}#L{})", relative_path.display(),line_counter).as_str());
                     markdown_code.push_str("\n");
                 }
             }
+            line_counter += 1;
         }
     }
     println!("{}", markdown_code);
+    // Write Markdown code into output file.
     let content_output = std::fs::read_to_string(&args.output_file).expect(format!("Could not read file {}.",args.output_file.display()).as_str());
     if content_output.contains("@TODO-List"){
         let processed = content_output.replace("@TODO-List", &markdown_code);
