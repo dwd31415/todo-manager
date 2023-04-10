@@ -31,7 +31,8 @@ fn main() -> std::io::Result<()>{
         println!("Error: The output file does not exist or is a directory.");
         return Ok(());
     }
-    let base_path = args.output_file.parent().expect(
+    let output_file_fullpath = args.output_file.canonicalize().unwrap();
+    let base_path = output_file_fullpath.parent().expect(
             format!("Error: The output file {} is an invalid path.", args.output_file.display()).as_str());
 
     // Extract all the input pattern and convert them to paths
@@ -62,11 +63,12 @@ fn main() -> std::io::Result<()>{
     files.sort();
 
     // Generate Markdown code 
-    let mut markdown_code = "".to_owned();
+    let mut markdown_code = "<!---@TODO-List--->".to_owned();
     for file_name in files{
         let content = std::fs::read_to_string(&file_name).expect(format!("Could not read file {}.", &file_name.display()).as_str());
+
         let relative_path = diff_paths(&file_name.canonicalize().unwrap(), &base_path.canonicalize().unwrap())
-            .expect(format!("Unexpected error.").as_str());
+            .expect(format!("Unexpected error while computing the relative path of the output file.").as_str());
         let mut line_counter = 1;
         for line in content.lines() {
             if line.contains("@TODO:") {
@@ -85,13 +87,13 @@ fn main() -> std::io::Result<()>{
     println!("{}", markdown_code);
     // Write Markdown code into output file.
     let content_output = std::fs::read_to_string(&args.output_file).expect(format!("Could not read file {}.",args.output_file.display()).as_str());
-    if content_output.contains("@TODO-List"){
-        let processed = content_output.replace("@TODO-List", &markdown_code);
+    if content_output.contains("<!---@TODO-List--->"){
+        let processed = content_output.replace("<!---@TODO-List--->", &markdown_code);
         let error_msg = format!("Could not write to file {}.", args.output_file.display());
         fs::write(args.output_file, processed).expect(error_msg.as_str()); 
     }
     else{
-        println!("Error: The output file {} doesn't contain the macro @TODO-List. Please add this somewhere.", args.output_file.display());
+        println!("Error: The output file {} doesn't contain the macro <!---@TODO-List--->. Please add this somewhere.", args.output_file.display());
     }
     Ok(())
 }
