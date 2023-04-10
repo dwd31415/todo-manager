@@ -19,6 +19,12 @@ struct Args {
     /// Note: This file should already exist and contain the macro "@TODO-List" somewhere.
     #[arg(short, long="output")]
     output_file: std::path::PathBuf,
+
+    /// Option to display the Markdown code in the terminal. 
+    /// This can be used in case the output file does not contain the "@TODO-List" macro. 
+    /// The paths are still given relative to the output file.
+    #[arg(short, long="display", default_value_t=false)]
+    display_markdown: bool,
 }
 
 fn main() -> std::io::Result<()>{
@@ -76,7 +82,7 @@ fn main() -> std::io::Result<()>{
                 let mut parts: Vec<&str> = line.split("@TODO:").collect();
                 parts.drain(..1);
                 for part in parts {
-                    markdown_code.push_str("- [ ]");
+                    markdown_code.push_str("- [ ] •");
                     markdown_code.push_str(part);
                     markdown_code.push_str(format!(" [See in file]({}#L{})", relative_path.display(),line_counter).as_str());
                     markdown_code.push_str("\n");
@@ -86,6 +92,12 @@ fn main() -> std::io::Result<()>{
         }
     }
     markdown_code.push_str("<!---@TODO-List-End--->\n");
+
+    // Display markdown code to user (optional)
+    if args.display_markdown{
+        println!("Markdown code for TODO list:");
+        println!("{}", markdown_code);
+    }
 
     // Write Markdown code into output file.
     let regex_macro = Regex::new(r"<!\-\-\-@TODO\-List\-Start\-\-\->(?s:.+)<!\-\-\-@TODO\-List\-End\-\-\->").unwrap();
