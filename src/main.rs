@@ -95,7 +95,7 @@ fn main() -> std::io::Result<()>{
             line_counter += 1;
         }
     }
-    markdown_code.push_str("<!---@TODO-List-End--->\n");
+    markdown_code.push_str("<!---@TODO-List-End--->");
 
     // Display markdown code to user (optional)
     if args.display_markdown{
