@@ -3,6 +3,7 @@ use pathdiff::diff_paths;
 use std::fs::metadata;
 use std::fs;
 use glob::glob;
+use regex::{self, Regex};
 /**
 Application to automatically format a todo list written in code.
 */
@@ -63,7 +64,7 @@ fn main() -> std::io::Result<()>{
     files.sort();
 
     // Generate Markdown code 
-    let mut markdown_code = "<!---@TODO-List--->".to_owned();
+    let mut markdown_code = "<!---@TODO-List-Start--->\n".to_owned();
     for file_name in files{
         let content = std::fs::read_to_string(&file_name).expect(format!("Could not read file {}.", &file_name.display()).as_str());
 
@@ -84,16 +85,18 @@ fn main() -> std::io::Result<()>{
             line_counter += 1;
         }
     }
-    println!("{}", markdown_code);
+    markdown_code.push_str("<!---@TODO-List-End--->\n");
+
     // Write Markdown code into output file.
+    let regex_macro = Regex::new(r"<!\-\-\-@TODO\-List\-Start\-\-\->(?s:.+)<!\-\-\-@TODO\-List\-End\-\-\->").unwrap();
     let content_output = std::fs::read_to_string(&args.output_file).expect(format!("Could not read file {}.",args.output_file.display()).as_str());
-    if content_output.contains("<!---@TODO-List--->"){
-        let processed = content_output.replace("<!---@TODO-List--->", &markdown_code);
+    if content_output.contains("<!---@TODO-List-Start--->") && content_output.contains("<!---@TODO-List-End--->"){
+        let processed = regex_macro.replace_all(content_output.as_str(), &markdown_code);
         let error_msg = format!("Could not write to file {}.", args.output_file.display());
-        fs::write(args.output_file, processed).expect(error_msg.as_str()); 
+        fs::write(args.output_file, processed.as_ref()).expect(error_msg.as_str()); 
     }
     else{
-        println!("Error: The output file {} doesn't contain the macro <!---@TODO-List--->. Please add this somewhere.", args.output_file.display());
+        println!("Error: The output file {} doesn't contain the macros <!---@TODO-List-Start---> and <!---@TODO-List-End--->.\nPlease add this somewhere.", args.output_file.display());
     }
     Ok(())
 }
