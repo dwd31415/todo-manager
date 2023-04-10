@@ -4,6 +4,8 @@ use std::fs::metadata;
 use std::fs;
 use glob::glob;
 use regex::{self, Regex};
+
+
 /**
 Application to automatically format a todo list written in code.
 */
@@ -59,7 +61,8 @@ fn main() -> std::io::Result<()>{
             files.push(path.clone());
         }
         if meta.is_dir(){
-            let paths = fs::read_dir(&path).expect(format!("Could not read file {}.", path.display()).as_str());
+            let paths = fs::read_dir(&path)
+                .expect(format!("Error: Could not read file {}.", path.display()).as_str());
             for path in paths {
                 println!("Name: {}", path.unwrap().path().display())
             }
@@ -72,10 +75,11 @@ fn main() -> std::io::Result<()>{
     // Generate Markdown code 
     let mut markdown_code = "<!---@TODO-List-Start--->\n".to_owned();
     for file_name in files{
-        let content = std::fs::read_to_string(&file_name).expect(format!("Could not read file {}.", &file_name.display()).as_str());
+        let content = std::fs::read_to_string(&file_name)
+            .expect(format!("Error: Could not read file {}.", &file_name.display()).as_str());
 
         let relative_path = diff_paths(&file_name.canonicalize().unwrap(), &base_path.canonicalize().unwrap())
-            .expect(format!("Unexpected error while computing the relative path of the output file.").as_str());
+            .expect(format!("Error: Unexpected error while computing the relative path of the output file.").as_str());
         let mut line_counter = 1;
         for line in content.lines() {
             if line.contains("@TODO:") {
@@ -101,10 +105,11 @@ fn main() -> std::io::Result<()>{
 
     // Write Markdown code into output file.
     let regex_macro = Regex::new(r"<!\-\-\-@TODO\-List\-Start\-\-\->(?s:.+)<!\-\-\-@TODO\-List\-End\-\-\->").unwrap();
-    let content_output = std::fs::read_to_string(&args.output_file).expect(format!("Could not read file {}.",args.output_file.display()).as_str());
+    let content_output = std::fs::read_to_string(&args.output_file)
+        .expect(format!("Error: Could not read file {}.",args.output_file.display()).as_str());
     if content_output.contains("<!---@TODO-List-Start--->") && content_output.contains("<!---@TODO-List-End--->"){
         let processed = regex_macro.replace_all(content_output.as_str(), &markdown_code);
-        let error_msg = format!("Could not write to file {}.", args.output_file.display());
+        let error_msg = format!("Error: Could not write to file {}.", args.output_file.display());
         fs::write(args.output_file, processed.as_ref()).expect(error_msg.as_str()); 
     }
     else{
