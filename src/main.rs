@@ -13,7 +13,7 @@ use regex::{self, Regex};
 /// {n}
 /// <!---@TODO-List-Start---> and <!---@TODO-List-End--->{n}
 /// {n}
-/// somewhere should be specified as an output file. The text between the macros will be replaced by the formatted TODO list.\n\
+/// somewhere should be specified as an output file. The text between the macros will be replaced by the formatted TODO list.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
