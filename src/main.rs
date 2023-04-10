@@ -6,9 +6,14 @@ use glob::glob;
 use regex::{self, Regex};
 
 
-/**
-Application to automatically format a todo list written in code.
-*/
+///
+/// Application to automatically format a TODO list written in code. {n} {n}
+/// TODO items can be written in code files following the pattern "@TODO: Whatever it is that you have to do.". {n}
+/// A Markdown file that already exists and contains the macros {n}
+/// {n}
+/// <!---@TODO-List-Start---> and <!---@TODO-List-End--->{n}
+/// {n}
+/// somewhere should be specified as an output file. The text between the macros will be replaced by the formatted TODO list.\n\
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -17,14 +22,12 @@ struct Args {
     #[clap(short, long, num_args = 0..)]
     input_files: Vec<String>,
 
-    /// Name of the output file. 
-    /// Note: This file should already exist and contain the macro "@TODO-List" somewhere.
+    /// Name of the output file (has to exist). 
     #[arg(short, long="output")]
     output_file: std::path::PathBuf,
 
     /// Option to display the Markdown code in the terminal. 
-    /// This can be used in case the output file does not contain the "@TODO-List" macro. 
-    /// The paths are still given relative to the output file.
+    /// The relative paths are still given relative to the output file.
     #[arg(short, long="display", default_value_t=false)]
     display_markdown: bool,
 }
@@ -46,7 +49,8 @@ fn main() -> std::io::Result<()>{
 
     // Extract all the input pattern and convert them to paths
     for file_name in args.input_files {
-        for entry in glob(file_name.as_str()).expect("Failed to read pattern ") {
+        for entry in glob(file_name.as_str())
+            .expect(format!("Error: Failed to read pattern {}.", file_name).as_str()) {
             match entry {
                 Ok(path) => paths.push(path),
                 Err(e) => println!("Error ocurred: {:?}", e),
